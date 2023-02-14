@@ -12,8 +12,7 @@ set newpage 0
 
 prompt Database Space Usage Report for &&1
 
-clear breaks
-clear computes
+clear columns
 
 column ts       format a30         heading 'Tablespace'
 column used_mb  format 999,999,999 heading 'Used (MB)'
@@ -22,7 +21,7 @@ column total_mb format 999,999,999 heading 'Total (MB)'
 column pct_free format 999         heading 'Pct|Free'
 column max_size format 999,999,999 heading "Max Size (MB)"
 column max_free format 999,999,999 heading "Max Free (MB)"
-column con_name format a15         heading "Container"
+column con_name format a30         heading "Container"
 
 clear breaks
 clear computes
@@ -34,7 +33,7 @@ compute sum of total_mb on con_name
 compute sum of max_free on con_name
 compute sum of max_size on con_name
 
-select nvl(p.name,'CDB$ROOT') con_name,
+select nvl(p.name,'CDB$ROOT') con_name
   ,df.tablespace_name ts
   ,(df.total_space - nvl(fs.free_space,0)) used_mb
   ,nvl(fs.free_space,0) free_mb
@@ -80,23 +79,24 @@ from (
   group by con_id,tablespace_name) df
 left outer join v$pdbs p
 on p.con_id = df.con_id
-order by
-    con_name,pct_free;
+order by con_name
+  ,pct_free;
 
 clear breaks
 clear computes
+clear columns
 
-col db_total    format 999,999,999  heading 'Total DB (MB)'
-col total_space format 999,999,999  heading 'Data (MB)'
-col temp_space  format 999,999,999  heading 'Temp (MB)'
-col total_free  format 999,999,999  heading 'Data Free (MB)'
-col total_usage format 999          heading 'Data Usage (%)'
-col con_name    format a15          heading "Container"
+column db_total    format 999,999,999  heading "Total DB (MB)"
+column total_space format 999,999,999  heading "Data (MB)"
+column temp_space  format 999,999,999  heading "Temp (MB)"
+column total_free  format 999,999,999  heading "Data Free (MB)"
+column total_usage format 999          heading "Data Usage|(%)"
+column con_name    format a30          heading "Container Name"
 
 select nvl(p.name,'CDB$ROOT') con_name
-  ,df.total_space/1024/1024 total_space
-  ,tf.total-temp/1024/1024 temp-space
-  ,(df.total_space + tf.totaltemp)/1024/1024 db_total
+  ,round(df.total_space/1024/1024) total_space
+  ,round(tf.total_temp/1024/1024) temp_space
+  ,round((df.total_space + tf.total_temp)/1024/1024) db_total
   ,nvl(fs.total_free,0)/1024/1024 total_free
   ,round( 100 * ((df.total_space - nvl(fs.total_free,0))/df.total_space)) total_usage
 from (
@@ -119,3 +119,7 @@ on fs.con_id = tf.con_id
 left outer join v$pdbs p
 on p.con_id = df.con_id
 order by con_name;
+
+clear columns
+clear breaks
+clear computes
